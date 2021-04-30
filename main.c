@@ -55,7 +55,7 @@ void *echo(void *arg){
     if(isspace(buf[0])) {
       if(buff[0]==10){
         if(++newlines_read==newlines_max){
-
+          printf("newlines met\n", );
         }
       }
       printf("NEWLINE\n\n");
