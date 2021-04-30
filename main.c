@@ -29,10 +29,9 @@ struct key {
 struct key* key_head = 0;
 
 void *echo(void *arg){
-  char host[100], port[10], buff[BUFSIZE + 1];
+  char host[100], port[10];
   struct connection *c = (struct connection *) arg;
-  int error, bytes_read, pos=0, newlines_read=0, newlines_max=0, word_length=3;
-  char* word = calloc(word_length,sizeof(char));
+  int error, ch, newlines_max=0, newlines_read=0;
 
 
   error = getnameinfo((struct sockaddr *) &c->addr, c->addr_len, host, 100, port, 10, NI_NUMERICSERV);
@@ -44,47 +43,32 @@ void *echo(void *arg){
 
   printf("[%s:%s] connection\n", host, port);
 
-  while ((bytes_read = read(c->fd, buff, BUFSIZE)) > 0) {
-    buff[bytes_read] = '\0';
-    printf("[%s:%s] read %d bytes\n", host, port, bytes_read);
+  FILE *fin = fdopen(dup(c->fd), "r");  // copy socket & open in read mode
+  FILE *fout = fdopen(c->fd, "w");  // open in write mode
 
-
-    if(isspace(buff[0])) {
-      if(buff[0]==10){
-        if(!newlines_read && !pos){
-          printf("first input shouldnt be a newline\n")
-        }
+  ch = getc(fin);
+  while (ch != EOF){
+    if(isspace(ch)){
+      if(ch==10){
         if(++newlines_read==newlines_max){
-          printf("newlines met\n");
+          printf("newlines maxed out\n", );
         }
       }
-      printf("NEWLINE\n\n");
     }
+    else{
+      if(newlines==0 && (ch=='G' || ch=='S' || ch=='D')){
 
-    else {
-      if(
-        (pos==0 &&
-          (
-          buff[0]!='G'
-          || buff[0]!='S'
-          || buff[0]!='D'
-          )
-        )
-        || (pos==1)
-      )
-      if(pos==word_length-1) word=realloc(word,sizeof(char)*(word_length*=2));
-      word[pos++]=buff[i];
-      //write(c->fd,"GOOD\n",5);
+      }
     }
-
-
+    ch = getc(fin);
   }
 
   printf("[%s:%s] got EOF\n", host, port);
 
+  fclose(fin);
+  fclose(fout);
   close(c->fd);
   free(c);
-  free(word);
   return NULL;
 }
 
