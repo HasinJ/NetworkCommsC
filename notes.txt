@@ -1,0 +1,39 @@
+
+When we read, we don't want to read too much
+    - if the client sent another request without waiting for our response,
+        we could read part of the second message
+        -> now we have to hold onto it until we finish dealing with the first
+        one
+
+    - if we ask for more bytes than the client sent, but the client is waiting
+        for our response before it sends any more, then we deadlock
+            - server is waiting for the client
+            - client is waiting for server
+        - buggy client sends message that is too short
+        - buggy server asks for more bytes than it should
+
+        - we defend against server bugs by writing good code
+        - we defend against short messages from the client by looking for the
+            terminating newline
+
+            GET\n5\n\day\n
+
+            terminating \n comes after 4 characters, not 5
+            server should immediately detect this, and not try to read further
+                -> send ERR\nLEN\n and close connection
+
+            GET\n3\day\n
+
+            server should not read past the 'y'
+                -> send ERR\nLEN\n and close connection
+
+
+            GET\n4\nday
+
+            no terminating \n
+                -> maybe not even a problem; client could still send the \n
+                    later
+                -> defending against this requires more advanced features
+                -> we won't consider this scenario in this class
+                -> you can't fix this with the tools I have given you,
+                    so don't try
