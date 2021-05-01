@@ -80,6 +80,13 @@ void *echo(void *arg){
             else ll_ins(L, key, word) //no error can continue connection
             */
           }
+          else{
+            printf("error with server, no chocie\n"); // should never happen;
+          }
+          printf("resetting...\n");
+          free(word);
+          newlines_max=3, newlines_read=0, pos=0, word_length=4, choice=0;
+          word=calloc(word_length+1,sizeof(char));
         }
         else if(newlines_read==1){
           printf("first newline -->");
