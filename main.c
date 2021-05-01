@@ -48,8 +48,9 @@ void *echo(void *arg){
 
   ch = getc(fin);
   while (ch != EOF){
-    if(ch=='\0'){
-      printf("error BAD cant have null term as input\n");
+    if(ch==0){
+      fprintf(fout, "ERR\nBAD\n");
+      fflush(fout);
       break;
     }
     if(isspace(ch)){
@@ -81,9 +82,10 @@ void *echo(void *arg){
           }
         }
         else if(newlines_read==1){
-          printf("first newline ");
+          printf("first newline -->");
           if(pos!=3) { //too short
-            printf("error BAD OR LEN, first set is too short\n");
+            fprintf(fout, "ERR\nBAD\n"); //idk about this
+            fflush(fout);
             break;
           }
           if(strcmp(word,"GET")==0){
