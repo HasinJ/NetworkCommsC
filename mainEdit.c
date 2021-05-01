@@ -231,8 +231,10 @@ void *echo(void *arg){
 
   printf("[%s:%s] connection\n", host, port);
 
-  FILE *fin = fdopen(dup(c->fd), "r");  // copy socket & open in read mode
-  FILE *fout = fdopen(c->fd, "w");  // open in write mode
+	int sock = c->fd;
+	int sock2 = dup(sock);
+  FILE *fin = fdopen(sock, "r");  // copy socket & open in read mode
+  FILE *fout = fdopen(sock2, "w");  // open in write mode
 
   ch = getc(fin);
   while (ch != EOF){
@@ -251,8 +253,11 @@ void *echo(void *arg){
 			result = ll_read(c->L, word);
 			if (result) {
 				printf("key found: %s\n", result);
+				fprintf(fout, "OKG\n%d\n%s\n", strlen(result)+1, result);
+				
 			}
-            else printf("KNF\n"); //no error can continue connection            
+            else fprintf(fout, "KNF\n"); //no error can continue connection  
+			fflush(fout);			
           }
           else if (choice==3) { // DEL
             printf("delete key: %s\n", word);            
@@ -260,16 +265,20 @@ void *echo(void *arg){
 			result = ll_del(c->L, word);
 			if (result) {
 				printf("key removed: %s\n its value was: %s\n", word, result);
+				fprintf(fout, "OKD\n%d\n%s\n", strlen(result)+1, result);
 			}
-            else printf("KNF\n");
+            else fprintf(fout, "KNF\n");
+			fflush(fout);
           }
           else if (choice==2){ //SET
             printf("set key: [%s] to value: [%s]\n", key, word);
 			if (!ll_ins(c->L, key, word)) {
 				printf("key insertion sucessful\n");
+				fprintf(fout, "OKS\n");
 			}
 			//should never reach here
-            else printf("Error inserting!\n");			
+            else printf("Error inserting!\n");
+			fflush(fout);
           }
         }
         else if(newlines_read==1){
@@ -293,7 +302,9 @@ void *echo(void *arg){
             choice=3;
           }
           else {
-            printf("error BAD its not GET, SET, or DEL\n"); //BAD
+            printf("error BAD its not GET, SET, or DEL\n");
+			fprintf(fout, "ERR\nBAD\n");
+			fflush(fout);
             break;
           }
         }
@@ -315,6 +326,8 @@ void *echo(void *arg){
       printf("\nbuilding word...\n");
       if(newlines_read==1 && !(ch >= '0' && ch <= '9')){
         printf("error BAD, second input isnt a number\n");
+		fprintf(fout, "ERR\nBAD\n");
+		fflush(fout);
         break;
       }
 
@@ -323,10 +336,14 @@ void *echo(void *arg){
       if(pos==word_length) { //too long
         if(newlines_read==0) {
           printf("error LEN first set of message is too long\n");
+			fprintf(fout, "ERR\nLEN\n");
+			fflush(fout);
           break;
         }
         else if(newlines_read==2 || (newlines_read==3 && choice==2) ){
           printf("error LEN, too many letters were given\n");
+		  fprintf(fout, "ERR\nLEN\n");
+			fflush(fout);
           break;
         }
         else { //this should never be called
