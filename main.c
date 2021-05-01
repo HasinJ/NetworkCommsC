@@ -28,11 +28,17 @@ struct key {
 
 struct key* key_head = 0;
 
+void reset(char* word, int word_length, int* pos){
+  free(word);
+  word=calloc(word_length+1,sizeof(char));
+  *pos=0;
+}
+
 void *echo(void *arg){
   char host[100], port[10];
   struct connection *c = (struct connection *) arg;
-  int error, ch, newlines_max=0, newlines_read=0;
-
+  int error, ch, newlines_max=3, newlines_read=0, pos=0, word_length=4;
+  char* word = calloc(word_length+1,sizeof(char));
 
   error = getnameinfo((struct sockaddr *) &c->addr, c->addr_len, host, 100, port, 10, NI_NUMERICSERV);
   if (error != 0) {
@@ -48,17 +54,71 @@ void *echo(void *arg){
 
   ch = getc(fin);
   while (ch != EOF){
+    if(ch=='\0'){
+      printf("error cant have null term as input\n");
+      free(word);
+      break;
+    }
     if(isspace(ch)){
       if(ch==10){
         if(++newlines_read==newlines_max){
-          printf("newlines maxed out\n", );
+          printf("newlines maxed out\n");
         }
+        if(newlines_read==1){
+          printf("first newline ");
+          if(pos!=3) { //too short
+            printf("error BAD OR LEN, first set is too short\n");
+            free(word);
+            break;
+          }
+          if(strcmp(word,"GET")==0){
+            printf("get command pos: %d \n", pos);
+          }
+          else if(strcmp(word,"SET")==0){
+            printf("set command\n");
+            newlines_max=4;
+          }
+          else if(strcmp(word,"DEL")==0){
+            printf("del command\n");
+          }
+          else {
+            printf("error BAD its not GET, SET, or DEL\n"); //BAD
+            free(word);
+            break;
+          }
+        }
+        if(newlines_read==2){
+          printf("second newline pos: %d number (word) : %d \n", pos, atoi(word));
+          word_length=atoi(word);
+          
+        }
+        if(newlines_read==3){
+          printf("doing the fetching thing\n");
+        }
+        free(word);
+        word=calloc(word_length+1,sizeof(char));
+        pos=0;
       }
     }
     else{
-      if(newlines==0 && (ch=='G' || ch=='S' || ch=='D')){
-
+      if(pos==word_length-1) { //too long
+        if(newlines_read==0) {
+          printf("error LEN first set of message is too long\n");
+          free(word);
+          break;
+        }
+        else { //this should never be called
+          printf("reallocating word space");
+          word=realloc(word,sizeof(char)*((word_length*=2)+1));
+        }
       }
+      printf("\nbuilding word...\n");
+      if(newlines_read==1 && !(ch >= '0' && ch <= '9')){
+        printf("error BAD, second input isnt a number\n");
+        free(word);
+        break;
+      }
+      word[pos++]=ch;
     }
     ch = getc(fin);
   }
