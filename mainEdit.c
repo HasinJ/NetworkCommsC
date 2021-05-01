@@ -53,7 +53,7 @@ int ll_init(sevLl *L){
 	L->head = NULL;
 	pthread_mutex_init(&L->lock, NULL);
 	pthread_cond_init(&L->read_ready, NULL);
-	pthread_cond_init(&L->read_ready, NULL);
+	pthread_cond_init(&L->write_ready, NULL);
 	return 0;
 }
 
