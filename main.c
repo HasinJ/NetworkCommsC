@@ -49,21 +49,35 @@ void *echo(void *arg){
   ch = getc(fin);
   while (ch != EOF){
     if(ch=='\0'){
-      printf("error cant have null term as input\n");
+      printf("error BAD cant have null term as input\n");
       break;
     }
     if(isspace(ch)){
       if(ch==10){
         if(++newlines_read==newlines_max){
           printf("newlines maxed out\n");
-          if (choice==1) {
-            printf("get word: %s\n", word);
+          if (choice==1) { // GET
+            printf("get key: %s\n", word);
+            /* get key and value here
+            char* result = 0;
+            if(result = ll_read(L, word))  printf("key found: %s", result); // idk if this works
+            else printf("KNF") //no error can continue connection
+            */
           }
-          else if (choice==3) {
-            printf("delete word: %s\n", word);
+          else if (choice==3) { // DEL
+            printf("delete key: %s\n", word);
+            /* delete here
+            char* result = ll_del(L, word); //idk if this works
+            printf("deleted: %s", result);
+            */
           }
-          else if (choice==2){
+          else if (choice==2){ //SET
             printf("set key: [%s] to value: [%s]\n", key, word);
+            /* set here
+            char* result = 0;
+            if(result = ll_read(L, word))  printf("key found: %s", result); // idk if this works
+            else ll_ins(L, key, word) //no error can continue connection
+            */
           }
         }
         else if(newlines_read==1){
