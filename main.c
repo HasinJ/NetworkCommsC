@@ -20,13 +20,6 @@ struct connection {
   int fd;
 };
 
-struct key {
-  struct key* next;
-  char* name, *content;
-  int name_length, content_length; //cant assume lengths
-};
-
-struct key* key_head = 0;
 
 void reset(char* word, int word_length, int* pos){
   free(word);
@@ -37,8 +30,9 @@ void reset(char* word, int word_length, int* pos){
 void *echo(void *arg){
   char host[100], port[10];
   struct connection *c = (struct connection *) arg;
-  int error, ch, newlines_max=3, newlines_read=0, pos=0, word_length=4;
+  int error, ch, newlines_max=3, newlines_read=0, pos=0, word_length=4, choice;
   char* word = calloc(word_length+1,sizeof(char));
+  char* key=0;
 
   error = getnameinfo((struct sockaddr *) &c->addr, c->addr_len, host, 100, port, 10, NI_NUMERICSERV);
   if (error != 0) {
@@ -56,44 +50,54 @@ void *echo(void *arg){
   while (ch != EOF){
     if(ch=='\0'){
       printf("error cant have null term as input\n");
-      free(word);
       break;
     }
     if(isspace(ch)){
       if(ch==10){
         if(++newlines_read==newlines_max){
           printf("newlines maxed out\n");
+          if (choice==1) {
+            printf("get word: %s\n", word);
+          }
+          else if (choice==3) {
+            printf("delete word: %s\n", word);
+          }
+          else if (choice==2){
+            printf("set key: [%s] to value: [%s]\n", key, word);
+          }
         }
-        if(newlines_read==1){
+        else if(newlines_read==1){
           printf("first newline ");
           if(pos!=3) { //too short
             printf("error BAD OR LEN, first set is too short\n");
-            free(word);
             break;
           }
           if(strcmp(word,"GET")==0){
             printf("get command pos: %d \n", pos);
+            choice=1;
           }
           else if(strcmp(word,"SET")==0){
             printf("set command\n");
             newlines_max=4;
+            choice=2;
           }
           else if(strcmp(word,"DEL")==0){
             printf("del command\n");
+            choice=3;
           }
           else {
             printf("error BAD its not GET, SET, or DEL\n"); //BAD
-            free(word);
             break;
           }
         }
-        if(newlines_read==2){
+        else if(newlines_read==2){
           printf("second newline pos: %d number (word) : %d \n", pos, atoi(word));
           word_length=atoi(word);
-          
         }
-        if(newlines_read==3){
-          printf("doing the fetching thing\n");
+        else if(newlines_read==3){
+          printf("third newline, means we're in SET mode |pos: %d| \n",pos);
+          key=calloc((word_length-=(pos+1))+1,sizeof(char));
+          strcpy(key,word);
         }
         free(word);
         word=calloc(word_length+1,sizeof(char));
@@ -101,30 +105,35 @@ void *echo(void *arg){
       }
     }
     else{
-      if(pos==word_length-1) { //too long
-        if(newlines_read==0) {
-          printf("error LEN first set of message is too long\n");
-          free(word);
-          break;
-        }
-        else { //this should never be called
-          printf("reallocating word space");
-          word=realloc(word,sizeof(char)*((word_length*=2)+1));
-        }
-      }
       printf("\nbuilding word...\n");
       if(newlines_read==1 && !(ch >= '0' && ch <= '9')){
         printf("error BAD, second input isnt a number\n");
-        free(word);
         break;
       }
+
       word[pos++]=ch;
+
+      if(pos==word_length) { //too long
+        if(newlines_read==0) {
+          printf("error LEN first set of message is too long\n");
+          break;
+        }
+        else if(newlines_read==2 || (newlines_read==3 && choice==2) ){
+          printf("error LEN, too many letters were given\n");
+          break;
+        }
+        else { //this should never be called
+          printf("THIS SHOULDNT BE CALLED: realloc");
+          word=realloc(word,sizeof(char)*((word_length*=2)+1));
+        }
+      }
+
     }
     ch = getc(fin);
   }
 
   printf("[%s:%s] got EOF\n", host, port);
-
+  free(word);
   fclose(fin);
   fclose(fout);
   close(c->fd);
