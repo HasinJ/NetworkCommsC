@@ -49,6 +49,7 @@ void *echo(void *arg){
   ch = getc(fin);
   while (ch != EOF){
     if(ch==0){
+      printf("error BAD, cant be null\n");
       fprintf(fout, "ERR\nBAD\n");
       fflush(fout);
       break;
@@ -110,6 +111,8 @@ void *echo(void *arg){
           }
           else {
             printf("error BAD its not GET, SET, or DEL\n"); //BAD
+            fprintf(fout, "ERR\nBAD\n");
+            fflush(fout);
             break;
           }
         }
@@ -118,8 +121,9 @@ void *echo(void *arg){
           word_length=atoi(word);
         }
         else if(newlines_read==3){
-          printf("third newline, means we're in SET mode |pos: %d| \n",pos);
+          printf("third newline, means we're in SET mode |pos: %d| ",pos);
           key=calloc((word_length-=(pos+1))+1,sizeof(char));
+          printf("next word should be length of %d",word_length);
           strcpy(key,word);
         }
         free(word);
@@ -131,6 +135,8 @@ void *echo(void *arg){
       printf("\nbuilding word...\n");
       if(newlines_read==1 && !(ch >= '0' && ch <= '9')){
         printf("error BAD, second input isnt a number\n");
+        fprintf(fout, "ERR\nBAD\n");
+        fflush(fout);
         break;
       }
 
@@ -139,10 +145,14 @@ void *echo(void *arg){
       if(pos==word_length) { //too long
         if(newlines_read==0) {
           printf("error LEN first set of message is too long\n");
+          fprintf(fout, "ERR\nLEN\n");
+          fflush(fout);
           break;
         }
         else if(newlines_read==2 || (newlines_read==3 && choice==2) ){
           printf("error LEN, too many letters were given\n");
+          fprintf(fout, "ERR\nLEN\n");
+          fflush(fout);
           break;
         }
         else { //this should never be called
