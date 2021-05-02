@@ -1,4 +1,4 @@
-  
+
 #define _POSIX_C_SOURCE 200809L
 #include <stdlib.h>
 #include <stdio.h>
@@ -23,7 +23,7 @@ typedef struct sNode {
 
 //LL
 typedef struct sevLl{ //queue struct
-	sNode* head; 
+	sNode* head;
 	pthread_mutex_t lock;
 	pthread_cond_t read_ready;
 	pthread_cond_t write_ready; //might not need
@@ -64,15 +64,15 @@ int ll_destroy(sevLl *L){
 	sNode* after;
 	cur = L->head;
 	pthread_mutex_lock(&L->lock);
-	
+
 	while (cur != NULL) {
 		after = cur->next;
 		free(cur);
-		cur = after;		
+		cur = after;
 	}
 	L->head = NULL;
-	
-	pthread_mutex_unlock(&L->lock);	
+
+	pthread_mutex_unlock(&L->lock);
 	//delete mutex
 	pthread_mutex_destroy(&L->lock);
 	pthread_cond_destroy(&L->read_ready);
@@ -88,25 +88,25 @@ int ll_ins(sevLl *L, char* k, char* v){
 	new->value = safe_malloc(strlen(v) + 1);
 	//if (new == NULL || new->key == NULL || v1 == NULL) return 1 //malloc failed
 	strcpy(new->key, k);
-	strcpy(new->value, v);		
-	new->next = NULL;	
-	
+	strcpy(new->value, v);
+	new->next = NULL;
+
 	sNode* cur = L->head;
 	sNode* prev;
-	
+
 	//lock mutex
 	pthread_mutex_lock(&L->lock);
-	
+
 	//if empty
 	if (L->head == NULL) {
 		L->head = new;
 	}
-	
+
 	else if (strcmp(new->key, cur->key) < 0) {
 		new->next = cur;
-		L->head = new;			
+		L->head = new;
 	}
-	
+
 	else {
 		while (cur != NULL) {
 			if (strcmp(new->key, cur->key) <= 0) {
@@ -121,19 +121,19 @@ int ll_ins(sevLl *L, char* k, char* v){
 					pthread_mutex_unlock(&L->lock);
 					return 0;
 				}
-				
+
 				else {
 					new->next = cur;
 					prev->next = new;
 					break;
-				}				
-			}			
+				}
+			}
 			prev = cur;
-			cur = cur->next;			
+			cur = cur->next;
 		}
 		//end
-		prev->next = new;		
-	}	
+		prev->next = new;
+	}
 	//unlock mutex signal ready
 	pthread_cond_signal(&L->read_ready);
 	pthread_cond_signal(&L->write_ready);
@@ -147,7 +147,7 @@ char *ll_read(sevLl *L, char *k) {
 	char* val;
 	while (cur != NULL) {
 		if (strcmp(k, cur->key) == 0) {
-			val = cur->value;			
+			val = cur->value;
 			return val;
 		}
 		cur = cur->next;
@@ -162,39 +162,39 @@ char *ll_del(sevLl *L, char *k) {
 	cur = L->head;
 	prev = NULL;
 	char *val;
-	
+
 	//lock mutex
 	pthread_mutex_lock(&L->lock);
-	
+
 	while (cur != NULL) {
-		if (strcmp(k, cur->key) == 0) {			
+		if (strcmp(k, cur->key) == 0) {
 			if (prev == NULL){ //del head
 				val = cur->value;
 				L->head = cur->next;
 			}
-			
-			else { 
+
+			else {
 				val = cur->value;
-				prev->next = cur->next;				
+				prev->next = cur->next;
 			}
-			
+
 			free(cur->key);
 			free(cur);
 			pthread_cond_signal(&L->read_ready);
 			pthread_cond_signal(&L->write_ready);
 			pthread_mutex_unlock(&L->lock);
-			return val;			
+			return val;
 		}
 		prev = cur;
 		cur = cur->next;
 	}
-	
+
 	//key DNE
 	pthread_cond_signal(&L->read_ready);
 	pthread_cond_signal(&L->write_ready);
 	pthread_mutex_unlock(&L->lock);
-	
-	return NULL;	
+
+	return NULL;
 }
 
 //print list
@@ -202,7 +202,7 @@ void ll_print (sevLl* L) {
 	sNode *cur = L->head;
 	while (cur != NULL) {
 		printf("key: %s, value: %s\n", cur->key, cur->value);
-		cur = cur->next;		
+		cur = cur->next;
 	}
 }
 
@@ -218,9 +218,6 @@ void *echo(void *arg){
   int error, ch, newlines_max=3, newlines_read=0, pos=0, word_length=4, choice;
   char* word = calloc(word_length+1,sizeof(char));
   char* key=0;
-  
-  
-  
 
   error = getnameinfo((struct sockaddr *) &c->addr, c->addr_len, host, 100, port, 10, NI_NUMERICSERV);
   if (error != 0) {
@@ -249,37 +246,38 @@ void *echo(void *arg){
           printf("newlines maxed out\n");
           if (choice==1) { // GET
             printf("get key: %s\n", word);
-			char* result = NULL;
-			result = ll_read(c->L, word);
-			if (result) {
-				printf("key found: %s\n", result);
-				fprintf(fout, "OKG\n%d\n%s\n", strlen(result)+1, result);
-				
-			}
-            else fprintf(fout, "KNF\n"); //no error can continue connection  
-			fflush(fout);			
+						char* result = NULL;
+						result = ll_read(c->L, word);
+						if (result) {
+							printf("key found: %s\n", result);
+							fprintf(fout, "OKG\n%ld\n%s\n", strlen(result)+1, result);
+						}
+            else fprintf(fout, "KNF\n"); //no error can continue connection
+						fflush(fout);
           }
           else if (choice==3) { // DEL
-            printf("delete key: %s\n", word);            
-			char* result = NULL;
-			result = ll_del(c->L, word);
-			if (result) {
-				printf("key removed: %s\n its value was: %s\n", word, result);
-				fprintf(fout, "OKD\n%d\n%s\n", strlen(result)+1, result);
-			}
+            printf("delete key: %s\n", word);
+						char* result = NULL;
+						result = ll_del(c->L, word);
+						if (result) {
+							printf("key removed: %s\n its value was: %s\n", word, result);
+							fprintf(fout, "OKD\n%ld\n%s\n", strlen(result)+1, result);
+						}
             else fprintf(fout, "KNF\n");
-			fflush(fout);
+						fflush(fout);
           }
           else if (choice==2){ //SET
             printf("set key: [%s] to value: [%s]\n", key, word);
-			if (!ll_ins(c->L, key, word)) {
-				printf("key insertion sucessful\n");
-				fprintf(fout, "OKS\n");
-			}
-			//should never reach here
+						if (!ll_ins(c->L, key, word)) {
+							printf("key insertion sucessful\n");
+							fprintf(fout, "OKS\n");
+						}
+						//should never reach here
             else printf("Error inserting!\n");
-			fflush(fout);
+						fflush(fout);
           }
+					printf("resetting...\n");
+					newlines_max=3, newlines_read=0, pos=0, word_length=4, choice=0;
         }
         else if(newlines_read==1){
           printf("first newline -->");
@@ -303,8 +301,8 @@ void *echo(void *arg){
           }
           else {
             printf("error BAD its not GET, SET, or DEL\n");
-			fprintf(fout, "ERR\nBAD\n");
-			fflush(fout);
+						fprintf(fout, "ERR\nBAD\n");
+						fflush(fout);
             break;
           }
         }
@@ -326,24 +324,27 @@ void *echo(void *arg){
       printf("\nbuilding word...\n");
       if(newlines_read==1 && !(ch >= '0' && ch <= '9')){
         printf("error BAD, second input isnt a number\n");
-		fprintf(fout, "ERR\nBAD\n");
-		fflush(fout);
+				fprintf(fout, "ERR\nBAD\n");
+				fflush(fout);
         break;
       }
 
+			if (newlines_read==0) {
+				if(ch >= 'a' && ch <= 'z') ch = ch -32;
+			}
       word[pos++]=ch;
 
       if(pos==word_length) { //too long
         if(newlines_read==0) {
           printf("error LEN first set of message is too long\n");
-			fprintf(fout, "ERR\nLEN\n");
-			fflush(fout);
+					fprintf(fout, "ERR\nLEN\n");
+					fflush(fout);
           break;
         }
         else if(newlines_read==2 || (newlines_read==3 && choice==2) ){
           printf("error LEN, too many letters were given\n");
-		  fprintf(fout, "ERR\nLEN\n");
-			fflush(fout);
+				  fprintf(fout, "ERR\nLEN\n");
+					fflush(fout);
           break;
         }
         else { //this should never be called
@@ -370,13 +371,13 @@ int server(char *port){
     struct connection *con;
     int error, sfd;
     pthread_t tid;
-	
-	//initalize LL
-	sevLl S;
-	ll_init(&S);
-	printf("Storage Struct Initilized\n");
-	
-	
+
+		//initalize LL
+		sevLl S;
+		ll_init(&S);
+		printf("Storage Struct Initilized\n");
+
+
 
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = AF_UNSPEC;
@@ -424,7 +425,7 @@ int server(char *port){
     for (;;) {
   		con = malloc(sizeof(struct connection)); // create argument struct for child thread
       con->L = &S;
-	  
+
 	  con->addr_len = sizeof(struct sockaddr_storage);
       	// addr_len is a read/write parameter to accept
       	// we set the initial value, saying how much space is available
