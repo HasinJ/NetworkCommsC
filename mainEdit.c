@@ -336,8 +336,8 @@ void *echo(void *arg){
 
       if(pos==word_length) { //too long
         if(newlines_read==0) {
-          printf("error LEN first set of message is too long\n");
-					fprintf(fout, "ERR\nLEN\n");
+          printf("error BAD first set of message is too long\n");
+					fprintf(fout, "ERR\nBAD\n");
 					fflush(fout);
           break;
         }
