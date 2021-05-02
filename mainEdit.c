@@ -215,9 +215,10 @@ void reset(char* word, int word_length, int* pos){
 void *echo(void *arg){
   char host[100], port[10];
   struct connection *c = (struct connection *) arg;
-  int error, ch, newlines_max=3, newlines_read=0, pos=0, word_length=4, choice;
+  int error, ch, newlines_max=3, newlines_read=0, value_start=0, pos=0, word_length=5, choice;
   char* word = calloc(word_length+1,sizeof(char));
-  char* key=0;
+	char* key = 0;
+	char* value = 0;
 
   error = getnameinfo((struct sockaddr *) &c->addr, c->addr_len, host, 100, port, 10, NI_NUMERICSERV);
   if (error != 0) {
@@ -240,11 +241,54 @@ void *echo(void *arg){
       fflush(fout);
       break;
     }
+
+
+		if(ch==10) {
+			printf("newline (pos++)...\n");
+			pos++;
+		}
+		else {
+			if(newlines_read==0 && (ch >= 'a' && ch <= 'z')) ch -= 32;
+			printf("\nbuilding word...\n");
+			word[pos++]=ch;
+		}
+
+		if(pos==word_length) { //too long
+			if(newlines_read==0) {
+				printf("error BAD first set of message is too long\n");
+				fprintf(fout, "ERR\nBAD\n");
+				fflush(fout);
+				break;
+			}
+			else if(newlines_read==2 || (newlines_read==3 && choice==2) ){
+				printf("error LEN, too many letters were given\n");
+				fprintf(fout, "ERR\nLEN\n");
+				fflush(fout);
+				break;
+			}
+			else { //this should never be called
+				printf("THIS SHOULDNT BE CALLED (except for numbers i think): realloc\n");
+				word=realloc(word,sizeof(char)*((word_length*=2)+1));
+			}
+		}
+
+
     if(isspace(ch)){
       if(ch==10){
-        if(++newlines_read==newlines_max){
+				++newlines_read;
+        if(newlines_read==newlines_max){
           printf("newlines maxed out\n");
+
           if (choice==1) { // GET
+
+						if (++pos<word_length){
+							printf("error LEN, too short\n");
+							fprintf(fout, "ERR\nLEN\n");
+							fflush(fout);
+							break;
+						}
+
+
             printf("get key: %s\n", word);
 						char* result = NULL;
 						result = ll_read(c->L, word);
@@ -256,6 +300,15 @@ void *echo(void *arg){
 						fflush(fout);
           }
           else if (choice==3) { // DEL
+
+						if (++pos<word_length){
+							printf("error LEN, too short\n");
+							fprintf(fout, "ERR\nLEN\n");
+							fflush(fout);
+							break;
+						}
+
+
             printf("delete key: %s\n", word);
 						char* result = NULL;
 						result = ll_del(c->L, word);
@@ -267,22 +320,41 @@ void *echo(void *arg){
 						fflush(fout);
           }
           else if (choice==2){ //SET
-            printf("set key: [%s] to value: [%s]\n", key, word);
-						if (!ll_ins(c->L, key, word)) {
+						printf("word buffer: %s\n", word);
+
+						value=calloc(word_length+1,sizeof(char));
+						int val_length=0;
+						for (; value_start != pos; value_start++) value[val_length++]=word[value_start];
+
+						printf("key plus value length %ld\n", (strlen(key)+1) + (strlen(value)+1));
+						if( ((strlen(key)+1) + (strlen(value)+1)) != word_length ){
+							printf("error LEN, too short\n");
+							fprintf(fout, "ERR\nLEN\n");
+							fflush(fout);
+							break;
+						}
+
+            printf("set key: [%s] to value: [%s]\n", key, value);
+						if (!ll_ins(c->L, key, value)) {
 							printf("key insertion sucessful\n");
 							fprintf(fout, "OKS\n");
 						}
 						//should never reach here
             else printf("Error inserting!\n");
 						fflush(fout);
+						free(key);
+						free(value);
+						val_length=0;
           }
+
 					printf("resetting...\n");
-					newlines_max=3, newlines_read=0, pos=0, word_length=4, choice=0;
+					newlines_max=3, newlines_read=0, value_start=0, pos=0, word_length=5, choice=0, key=0;
         }
         else if(newlines_read==1){
           printf("first newline -->");
-          if(pos!=3) { //too short
-            fprintf(fout, "ERR\nBAD\n"); //idk about this
+          if(pos<4) { //too short
+						printf("input too short");
+            fprintf(fout, "ERR\nBAD\n");
             fflush(fout);
             break;
           }
@@ -308,52 +380,30 @@ void *echo(void *arg){
         }
         else if(newlines_read==2){
           printf("second newline pos: %d number (word) : %d \n", pos, atoi(word));
-          word_length=atoi(word);
+          word_length=atoi(word)+1;
         }
         else if(newlines_read==3){
           printf("third newline, means we're in SET mode |pos: %d| \n",pos);
-          key=calloc((word_length-=(pos+1))+1,sizeof(char));
-          strcpy(key,word);
+					//could have a do while newlines_read!=5
+					/*
+						set
+						11
+						day\n
+						sunday\n
+					*/
+					key = calloc(word_length+1,sizeof(char));
+					strcpy(key,word);
+					value_start=pos;
         }
-        free(word);
-        word=calloc(word_length+1,sizeof(char));
-        pos=0;
+
+				if (newlines_read!=3) {
+					free(word);
+					word=calloc(word_length+1,sizeof(char));
+					pos=0;
+				}
       }
     }
-    else{
-      printf("\nbuilding word...\n");
-      if(newlines_read==1 && !(ch >= '0' && ch <= '9')){
-        printf("error BAD, second input isnt a number\n");
-				fprintf(fout, "ERR\nBAD\n");
-				fflush(fout);
-        break;
-      }
 
-			if (newlines_read==0) {
-				if(ch >= 'a' && ch <= 'z') ch = ch -32;
-			}
-      word[pos++]=ch;
-
-      if(pos==word_length) { //too long
-        if(newlines_read==0) {
-          printf("error BAD first set of message is too long\n");
-					fprintf(fout, "ERR\nBAD\n");
-					fflush(fout);
-          break;
-        }
-        else if(newlines_read==2 || (newlines_read==3 && choice==2) ){
-          printf("error LEN, too many letters were given\n");
-				  fprintf(fout, "ERR\nLEN\n");
-					fflush(fout);
-          break;
-        }
-        else { //this should never be called
-          printf("THIS SHOULDNT BE CALLED: realloc");
-          word=realloc(word,sizeof(char)*((word_length*=2)+1));
-        }
-      }
-
-    }
     ch = getc(fin);
   }
 
