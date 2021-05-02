@@ -237,6 +237,7 @@ void *echo(void *arg){
   ch = getc(fin);
   while (ch != EOF){
     if(ch==0){
+			printf("error BAD, input cant be null\n");
       fprintf(fout, "ERR\nBAD\n");
       fflush(fout);
       break;
@@ -286,15 +287,20 @@ void *echo(void *arg){
 
           if (choice==1) { // GET
 
-						if (++pos<word_length){
+						if (++pos<word_length){ // too short
 							printf("error LEN, too short\n");
 							fprintf(fout, "ERR\nLEN\n");
 							fflush(fout);
 							break;
 						}
 
-
             printf("get key: %s\n", word);
+						if(word[0]==0){ // empty key
+							printf("err BAD, key is empty\n");
+							fprintf(fout, "ERR\nBAD\n");
+							fflush(fout);
+							break;
+						}
 						char* result = NULL;
 						result = ll_read(c->L, word);
 						if (result) {
@@ -306,15 +312,20 @@ void *echo(void *arg){
           }
           else if (choice==3) { // DEL
 
-						if (++pos<word_length){
+						if (++pos<word_length){ // too short
 							printf("error LEN, too short\n");
 							fprintf(fout, "ERR\nLEN\n");
 							fflush(fout);
 							break;
 						}
 
-
             printf("delete key: %s\n", word);
+						if(word[0]==0){ // empty key
+							printf("err BAD, key is empty\n");
+							fprintf(fout, "ERR\nBAD\n");
+							fflush(fout);
+							break;
+						}
 						char* result = NULL;
 						result = ll_del(c->L, word);
 						if (result) {
@@ -391,6 +402,12 @@ void *echo(void *arg){
           printf("third newline, means we're in SET mode |pos: %d| \n",pos);
 					key = calloc(word_length+1,sizeof(char));
 					strcpy(key,word);
+					if(key[0]==0){ // empty key
+						printf("err BAD, key is empty\n");
+						fprintf(fout, "ERR\nBAD\n");
+						fflush(fout);
+						break;
+					}
 					value_start=pos;
         }
 
