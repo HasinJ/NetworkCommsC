@@ -242,13 +242,18 @@ void *echo(void *arg){
       break;
     }
 
-
 		if(ch==10) {
-			printf("newline (pos++)...\n");
+			printf("\nnewline (pos++)...\n");
 			pos++;
 		}
 		else {
 			if(newlines_read==0 && (ch >= 'a' && ch <= 'z')) ch -= 32;
+			if(newlines_read==1 && !(ch >= '0' && ch <= '9')){
+				printf("error BAD, second input isnt a number\n");
+				fprintf(fout, "ERR\nBAD\n");
+				fflush(fout);
+				break;
+			}
 			printf("\nbuilding word...\n");
 			word[pos++]=ch;
 		}
@@ -266,7 +271,7 @@ void *echo(void *arg){
 				fflush(fout);
 				break;
 			}
-			else { //this should never be called
+			else { //only called for numbers
 				printf("THIS SHOULDNT BE CALLED (except for numbers i think): realloc\n");
 				word=realloc(word,sizeof(char)*((word_length*=2)+1));
 			}
@@ -323,11 +328,11 @@ void *echo(void *arg){
 						printf("word buffer: %s\n", word);
 
 						value=calloc(word_length+1,sizeof(char));
-						int val_length=0;
+						int val_length=0, key_length=value_start-1;
 						for (; value_start != pos; value_start++) value[val_length++]=word[value_start];
 
-						printf("key plus value length %ld\n", (strlen(key)+1) + (strlen(value)+1));
-						if( ((strlen(key)+1) + (strlen(value)+1)) != word_length ){
+						printf("key plus value length %d\n", (key_length+1) + (val_length+1));
+						if( ((val_length+1) + (key_length+1)) < word_length ){
 							printf("error LEN, too short\n");
 							fprintf(fout, "ERR\nLEN\n");
 							fflush(fout);
@@ -384,13 +389,6 @@ void *echo(void *arg){
         }
         else if(newlines_read==3){
           printf("third newline, means we're in SET mode |pos: %d| \n",pos);
-					//could have a do while newlines_read!=5
-					/*
-						set
-						11
-						day\n
-						sunday\n
-					*/
 					key = calloc(word_length+1,sizeof(char));
 					strcpy(key,word);
 					value_start=pos;
