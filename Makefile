@@ -1,6 +1,9 @@
 
 default:
-	gcc -g -Wall -Werror -pthread -fsanitize=address main.c -o main -lm
+	gcc -g -Wall -Werror -pthread -fsanitize=address mainFin.c -o mainFin -lm
+
+mainedit:
+	gcc -g -Wall -Werror -pthread -fsanitize=address mainEdit.c -o mainEdit -lm
 
 sender:
 	gcc -g -Wall -Werror -pthread -fsanitize=address sendrecv.c -o sendrecv -lm
