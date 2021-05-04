@@ -303,12 +303,7 @@ void *echo(void *arg){
 						}
 
             printf("get key: %s\n", word);
-						if(word[0]==0){ // empty key
-							printf("err BAD, key is empty\n");
-							fprintf(fout, "ERR\nBAD\n");
-							fflush(fout);
-							break;
-						}
+
 						char* result = NULL;
 						result = ll_read(c->L, word);
 						if (result) {
@@ -328,12 +323,7 @@ void *echo(void *arg){
 						}
 
             printf("delete key: %s\n", word);
-						if(word[0]==0){ // empty key
-							printf("err BAD, key is empty\n");
-							fprintf(fout, "ERR\nBAD\n");
-							fflush(fout);
-							break;
-						}
+
 						char* result = NULL;
 						result = ll_del(c->L, word);
 						if (result) {
@@ -374,6 +364,7 @@ void *echo(void *arg){
 						free(key);
 						free(value);
 						val_length=0;
+						key=0;
           }
 
 					printf("resetting...\n");
@@ -415,12 +406,6 @@ void *echo(void *arg){
           printf("third newline, means we're in SET mode |pos: %d| \n",pos);
 					key = calloc(word_length+1,sizeof(char));
 					strcpy(key,word);
-					if(key[0]==0){ // empty key
-						printf("err BAD, key is empty\n");
-						fprintf(fout, "ERR\nBAD\n");
-						fflush(fout);
-						break;
-					}
 					value_start=pos;
         }
 
